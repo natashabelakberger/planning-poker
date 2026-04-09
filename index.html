@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Poker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sand:#f5f0e8;--sand2:#ede6d8;--sand3:#d9cfc0;
+  --ocean:#3a7ca5;--ocean2:#5b9bbf;--ocean3:#c8dfe9;
+  --terra:#c4623a;--terra2:#e8845e;--terra3:#f5cbb8;
+  --sun:#e8a83a;--sun2:#f5c96a;--sun3:#faecc8;
+  --sage:#7a9e7e;--sage2:#a3c2a7;--sage3:#daeadb;
+  --ink:#2c2118;--ink2:#5a4a38;--ink3:#9a8878;
+  --white:#fffcf7;
+  --card-w:68px;--card-h:96px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--ink);min-height:100vh}
+.wave-bg{position:fixed;bottom:0;left:0;right:0;height:120px;opacity:.12;pointer-events:none;z-index:0}
+#lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;gap:1.5rem;position:relative;z-index:1}
+.logo-wrap{text-align:center}
+.logo{font-family:'Playfair Display',serif;font-size:clamp(2.8rem,9vw,5.5rem);font-weight:700;letter-spacing:-1px;line-height:1;color:var(--ink)}
+.logo em{font-style:italic;color:var(--terra)}
+.logo-wave{font-family:'Playfair Display',serif;font-style:italic;font-size:13px;letter-spacing:2px;color:var(--ink3);margin-top:4px}
+.lobby-card{background:var(--white);border:1px solid var(--sand3);border-radius:16px;padding:2rem;width:100%;max-width:420px}
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:500}
+.field input{width:100%;background:var(--sand);border:1.5px solid var(--sand3);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;transition:border .2s}
+.field input:focus{border-color:var(--ocean)}
+.btn{width:100%;background:var(--terra);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:500;font-size:14px;letter-spacing:1px;border:none;padding:14px;border-radius:10px;cursor:pointer;transition:all .2s}
+.btn:hover{background:var(--terra2)}
+.btn:active{transform:scale(.98)}
+.role-toggle{display:flex;gap:8px;margin-bottom:.5rem}
+.role-btn{flex:1;padding:10px;font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:1px;border:1.5px solid var(--sand3);background:var(--sand);color:var(--ink3);border-radius:10px;cursor:pointer;transition:all .2s;text-align:center;font-weight:400}
+.role-btn.active{border-color:var(--ocean);color:var(--ocean);background:var(--ocean3)}
+.watcher-note{font-size:11px;color:var(--ocean);margin-bottom:1rem;display:none;letter-spacing:.3px;font-style:italic}
+.divider-line{height:1px;background:var(--sand3);margin:1.2rem 0}
+#room{display:none;min-height:100vh;padding:1.5rem;position:relative;z-index:1}
+.room-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
+.room-id-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3)}
+.room-code-val{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--terra);letter-spacing:2px}
+.header-right{display:flex;align-items:center;gap:10px}
+.my-badge{font-size:11px;padding:5px 14px;border-radius:20px;letter-spacing:1px;font-weight:500}
+.voter-badge{background:var(--sun3);color:var(--terra);border:1px solid var(--sun2)}
+.watcher-badge{background:var(--ocean3);color:var(--ocean);border:1px solid var(--ocean2)}
+.leave-btn{font-family:'DM Sans',sans-serif;font-size:11px;padding:6px 14px;background:transparent;border:1.5px solid var(--sand3);color:var(--ink3);border-radius:20px;cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.leave-btn:hover{border-color:var(--terra);color:var(--terra)}
+.section-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:12px;font-weight:500}
+.players-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:2rem}
+.player-tile{background:var(--white);border:1.5px solid var(--sand3);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;min-width:155px;transition:all .2s}
+.player-tile.voted{border-color:var(--sage);background:var(--sage3)}
+.player-tile.revealed{border-color:var(--ocean);background:var(--ocean3)}
+.player-avatar{width:32px;height:32px;border-radius:50%;background:var(--terra3);border:1.5px solid var(--terra2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;color:var(--terra)}
+.player-info{flex:1;min-width:0}
+.player-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.player-status{font-size:10px;color:var(--ink3);letter-spacing:.5px;margin-top:2px}
+.player-vote-chip{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--terra);min-width:26px;text-align:center}
+.pip{width:8px;height:8px;border-radius:50%;background:var(--sand3);flex-shrink:0}
+.pip.done{background:var(--sage)}
+.pip.watching{background:var(--ocean2)}
+.cards-section{margin-bottom:2rem}
+.card-values{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pcard{width:var(--card-w);height:var(--card-h);background:var(--white);border:1.5px solid var(--sand3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--ink2);user-select:none;position:relative}
+.pcard:hover{border-color:var(--terra);color:var(--terra);transform:translateY(-6px);background:var(--terra3)}
+.pcard.selected{border-color:var(--terra);background:var(--terra);color:var(--white);transform:translateY(-10px)}
+.pcard.selected::after{content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--terra)}
+.pcard-sm{font-size:15px}
+.story-section{margin-bottom:1.5rem}
+.story-display{background:var(--white);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--ink2);margin-bottom:.75rem;min-height:44px;display:flex;align-items:center;font-style:italic}
+.story-row{display:flex;gap:8px;align-items:stretch}
+.story-input{flex:1;background:var(--white);border:1.5px solid var(--sand3);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 14px;border-radius:10px;outline:none;transition:border .2s}
+.story-input:focus{border-color:var(--ocean)}
+.story-toggle-btn{font-family:'DM Sans',sans-serif;font-size:11px;padding:6px 14px;background:transparent;border:1.5px solid var(--sand3);color:var(--ink3);border-radius:20px;cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.story-toggle-btn:hover{border-color:var(--ocean);color:var(--ocean)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:2rem}
+.control-btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;letter-spacing:.5px;padding:10px 22px;border-radius:10px;cursor:pointer;transition:all .2s;border:1.5px solid var(--sand3);background:transparent;color:var(--ink2)}
+.control-btn:hover{opacity:.85}
+.control-btn.primary{background:var(--terra);color:var(--white);border-color:var(--terra)}
+.control-btn.primary:hover{background:var(--terra2)}
+.control-btn.secondary{border-color:var(--ocean);color:var(--ocean)}
+.control-btn:disabled{opacity:.3;cursor:default}
+.results-bar{background:var(--white);border:1.5px solid var(--sand3);border-radius:14px;padding:1.5rem;margin-bottom:2rem;display:none}
+.results-bar.show{display:block}
+.results-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem;font-weight:500}
+.vote-breakdown{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
+.vote-group{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--sand);border-radius:10px;padding:10px 16px;min-width:64px}
+.vote-val{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--terra)}
+.vote-count{font-size:10px;color:var(--ink3);letter-spacing:1px}
+.vote-names{font-size:10px;color:var(--ink2);text-align:center;max-width:80px;line-height:1.5}
+.result-stat{display:flex;gap:2rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--sand3)}
+.stat-item{font-size:11px;color:var(--ink3);letter-spacing:.5px}
+.stat-item strong{display:block;font-family:'Playfair Display',serif;font-size:22px;color:var(--ocean);margin-bottom:2px;font-weight:700}
+.status-bar{background:var(--white);border-top:1px solid var(--sand3);padding:10px 1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:1rem;position:relative;z-index:2}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--sage);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.toast{position:fixed;top:1.5rem;right:1.5rem;background:var(--white);border:1.5px solid var(--sand3);border-radius:10px;padding:12px 18px;font-size:12px;z-index:10000;transform:translateY(-20px);opacity:0;transition:all .3s;letter-spacing:.3px;max-width:280px;color:var(--ink2)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--sage);color:var(--sage)}
+.toast.info{border-color:var(--ocean);color:var(--ocean)}
+.pb{padding-bottom:60px}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<svg class="wave-bg" viewBox="0 0 1440 120" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <path d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,50 1440,60 L1440,120 L0,120 Z" fill="#3a7ca5"/>
+</svg>
+
+<div id="lobby">
+  <div class="logo-wrap">
+    <div class="logo">Sprint<em>Poker</em></div>
+    <div class="logo-wave">golden hour estimates ✦ san diego</div>
+  </div>
+  <div class="lobby-card">
+    <div class="field">
+      <label>Your name</label>
+      <input type="text" id="nameInput" placeholder="e.g. Alex Chen" maxlength="20" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Your role</label>
+      <div class="role-toggle">
+        <div class="role-btn active" id="roleVoter" onclick="setRole('voter')">Voter</div>
+        <div class="role-btn" id="roleWatcher" onclick="setRole('watcher')">Watcher</div>
+      </div>
+      <div class="watcher-note" id="watcherNote">Observers only — no voting, just vibes.</div>
+    </div>
+    <div class="divider-line"></div>
+    <div class="field">
+      <label>Room code (join existing)</label>
+      <input type="text" id="roomCodeInput" placeholder="Leave blank to create new" maxlength="6" style="text-transform:uppercase;letter-spacing:3px" autocomplete="off">
+    </div>
+    <button class="btn" onclick="joinOrCreate()">Enter Pointing Poker →</button>
+  </div>
+</div>
+
+<div id="room" class="pb">
+  <div class="room-header">
+    <div>
+      <div class="room-id-label">Room</div>
+      <div class="room-code-val" id="displayRoomCode">——</div>
+    </div>
+    <div class="header-right">
+      <div class="my-badge voter-badge" id="myBadge">Voter</div>
+      <button class="leave-btn" onclick="leaveRoom()">leave</button>
+    </div>
+  </div>
+
+  <div id="voterSection">
+    <div class="cards-section">
+      <div class="section-label">Your estimate</div>
+      <div class="card-values" id="cardValues"></div>
+    </div>
+  </div>
+
+  <div class="story-section">
+    <div class="section-label">Current story</div>
+    <div class="story-display" id="storyDisplay">No story set yet...</div>
+    <div id="storyEditRow" class="story-row" style="display:none;margin-bottom:.75rem">
+      <input class="story-input" id="storyInput" placeholder="Story title or ticket ID..." maxlength="120">
+      <button class="control-btn primary" onclick="setStory()" style="white-space:nowrap;border-radius:10px">Set</button>
+    </div>
+    <button class="story-toggle-btn" id="storyToggleBtn" onclick="toggleStoryEdit()">edit story</button>
+  </div>
+
+  <div class="section-label" style="margin-bottom:12px;margin-top:1.5rem">Who's in the water</div>
+  <div class="players-grid" id="playersGrid"></div>
+
+  <div class="controls" id="controlsRow">
+    <button class="control-btn primary" id="revealBtn" onclick="revealVotes()" disabled>Flip cards</button>
+    <button class="control-btn secondary" onclick="resetRound()">New wave</button>
+  </div>
+
+  <div class="results-bar" id="resultsBar">
+    <div class="results-label">The breakdown</div>
+    <div class="vote-breakdown" id="voteBreakdown"></div>
+    <div class="result-stat" id="resultStat"></div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar" style="display:none">
+  <div><span class="status-dot"></span><span id="statusText" style="color:var(--ink3)">Connected</span></div>
+  <div id="progressRow" style="font-size:11px;color:var(--ink3)"></div>
+</div>
+
+<script>
+const FIBONACCI=['1','2','3','5','8','13','21','34','?','☕'];
+const POLL_MS=2000;
+const SK='sprintp:';
+let myName='',myRole='voter',myId='',roomCode='',polling=null,lastRevealed=false;
+
+function setRole(r){
+  myRole=r;
+  document.getElementById('roleVoter').classList.toggle('active',r==='voter');
+  document.getElementById('roleWatcher').classList.toggle('active',r==='watcher');
+  document.getElementById('watcherNote').style.display=r==='watcher'?'block':'none';
+}
+function genId(){return Math.random().toString(36).slice(2,10)}
+function genCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+
+async function sGet(k){try{const r=await window.storage.get(SK+k,true);return r?JSON.parse(r.value):null}catch{return null}}
+async function sSet(k,v){try{await window.storage.set(SK+k,JSON.stringify(v),true)}catch(e){console.error(e)}}
+
+async function joinOrCreate(){
+  myName=document.getElementById('nameInput').value.trim();
+  if(!myName){showToast('What should we call you?','info');return}
+  let code=document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  myId=genId();
+  if(code){
+    const room=await sGet('room:'+code);
+    if(!room){showToast('Room not found — check the code','info');return}
+    roomCode=code;
+  } else {
+    roomCode=genCode();
+    await sSet('room:'+roomCode,{code:roomCode,story:'',revealed:false,players:{},createdAt:Date.now()});
+  }
+  const room=await sGet('room:'+roomCode);
+  if(!room){showToast('Could not connect','info');return}
+  room.players[myId]={id:myId,name:myName,role:myRole,vote:null,joinedAt:Date.now()};
+  await sSet('room:'+roomCode,room);
+  showRoom(room);
+}
+
+function showRoom(room){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('room').style.display='block';
+  document.getElementById('statusBar').style.display='flex';
+  document.getElementById('displayRoomCode').textContent=roomCode;
+  const badge=document.getElementById('myBadge');
+  if(myRole==='watcher'){badge.className='my-badge watcher-badge';badge.textContent='Watcher';}
+  else{badge.className='my-badge voter-badge';badge.textContent='Voter';}
+  if(myRole==='voter') buildCards();
+  else document.getElementById('voterSection').style.display='none';
+  renderRoom(room);
+  polling=setInterval(async()=>{const r=await sGet('room:'+roomCode);if(r)renderRoom(r)},POLL_MS);
+}
+
+function buildCards(){
+  const g=document.getElementById('cardValues');g.innerHTML='';
+  FIBONACCI.forEach(v=>{
+    const c=document.createElement('div');
+    c.className='pcard'+(v.length>2?' pcard-sm':'');
+    c.textContent=v;c.dataset.val=v;
+    c.onclick=()=>selectCard(v,c);
+    g.appendChild(c);
+  });
+}
+
+async function selectCard(val,el){
+  const room=await sGet('room:'+roomCode);
+  if(!room||room.revealed)return;
+  room.players[myId].vote=val;
+  await sSet('room:'+roomCode,room);
+  document.querySelectorAll('.pcard').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  showToast('Locked in: '+val,'success');
+}
+
+async function setStory(){
+  const val=document.getElementById('storyInput').value.trim();
+  const room=await sGet('room:'+roomCode);
+  if(!room)return;
+  room.story=val;
+  await sSet('room:'+roomCode,room);
+  toggleStoryEdit();
+}
+
+function toggleStoryEdit(){
+  const row=document.getElementById('storyEditRow');
+  const btn=document.getElementById('storyToggleBtn');
+  const showing=row.style.display!=='none';
+  row.style.display=showing?'none':'flex';
+  btn.textContent=showing?'edit story':'cancel';
+  if(!showing)document.getElementById('storyInput').focus();
+}
+
+async function revealVotes(){
+  const room=await sGet('room:'+roomCode);
+  if(!room)return;
+  room.revealed=true;
+  await sSet('room:'+roomCode,room);
+}
+
+async function resetRound(){
+  const room=await sGet('room:'+roomCode);
+  if(!room)return;
+  room.revealed=false;room.story='';
+  Object.values(room.players).forEach(p=>p.vote=null);
+  await sSet('room:'+roomCode,room);
+  document.querySelectorAll('.pcard').forEach(c=>c.classList.remove('selected'));
+}
+
+async function leaveRoom(){
+  const room=await sGet('room:'+roomCode);
+  if(room&&room.players[myId]){delete room.players[myId];await sSet('room:'+roomCode,room);}
+  clearInterval(polling);
+  document.getElementById('room').style.display='none';
+  document.getElementById('statusBar').style.display='none';
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('roomCodeInput').value='';
+  document.getElementById('voterSection').style.display='block';
+}
+
+function renderRoom(room){
+  const now=Date.now();
+  Object.keys(room.players).forEach(id=>{if(now-room.players[id].joinedAt>30*60*1000)delete room.players[id]});
+  const players=Object.values(room.players);
+  const voters=players.filter(p=>p.role==='voter');
+  const watchers=players.filter(p=>p.role==='watcher');
+  const allVoted=voters.length>0&&voters.every(p=>p.vote!==null);
+
+  const sd=document.getElementById('storyDisplay');
+  if(room.story){sd.textContent=room.story;sd.style.fontStyle='normal';}
+  else{sd.textContent='No story set yet...';sd.style.fontStyle='italic';}
+
+  const grid=document.getElementById('playersGrid');grid.innerHTML='';
+  voters.forEach(p=>{
+    const tile=document.createElement('div');
+    const hasVoted=p.vote!==null;const isSelf=p.id===myId;
+    tile.className='player-tile'+(hasVoted&&!room.revealed?' voted':'')+(room.revealed?' revealed':'');
+    const initials=p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    let vd='';
+    if(room.revealed&&hasVoted)vd=`<div class="player-vote-chip">${p.vote}</div>`;
+    else if(hasVoted&&!room.revealed)vd=`<div class="pip done"></div>`;
+    else vd=`<div class="pip"></div>`;
+    tile.innerHTML=`<div class="player-avatar">${initials}</div><div class="player-info"><div class="player-name">${p.name}${isSelf?' <span style="font-size:9px;color:var(--ink3)">(you)</span>':''}</div><div class="player-status">${room.revealed?(hasVoted?'voted':'abstained'):(hasVoted?'ready ✓':'thinking...')}</div></div>${vd}`;
+    grid.appendChild(tile);
+  });
+
+  if(watchers.length>0){
+    const sep=document.createElement('div');
+    sep.style.cssText='width:100%;font-size:10px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;padding-top:4px;font-weight:500';
+    sep.textContent='— watching ('+watchers.length+')';
+    grid.appendChild(sep);
+    watchers.forEach(p=>{
+      const tile=document.createElement('div');
+      const isSelf=p.id===myId;
+      tile.className='player-tile';tile.style.borderColor='var(--ocean2)';tile.style.opacity='.75';
+      const initials=p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      tile.innerHTML=`<div class="player-avatar" style="background:var(--ocean3);border-color:var(--ocean2);color:var(--ocean)">${initials}</div><div class="player-info"><div class="player-name">${p.name}${isSelf?' <span style="font-size:9px;color:var(--ink3)">(you)</span>':''}</div><div class="player-status" style="color:var(--ocean2)">watching</div></div><div style="font-size:14px">👁</div>`;
+      grid.appendChild(tile);
+    });
+  }
+
+  document.getElementById('revealBtn').disabled=!allVoted||room.revealed;
+
+  const rb=document.getElementById('resultsBar');
+  if(room.revealed&&voters.length>0){
+    rb.classList.add('show');buildResults(voters);
+    if(!lastRevealed)triggerReveal();
+    lastRevealed=true;
+  } else {rb.classList.remove('show');lastRevealed=false;}
+
+  const prog=document.getElementById('progressRow');
+  if(voters.length>0){const vc=voters.filter(p=>p.vote!==null).length;prog.innerHTML='<span style="color:var(--terra);font-weight:500">'+vc+'</span> / '+voters.length+' voted';}
+  document.getElementById('statusText').textContent=players.length+' in room · '+roomCode;
+}
+
+function buildResults(voters){
+  const bd=document.getElementById('voteBreakdown'),sd=document.getElementById('resultStat');
+  const numVotes=voters.filter(p=>p.vote&&p.vote!=='?'&&p.vote!=='☕'&&!isNaN(parseInt(p.vote))).map(p=>parseInt(p.vote));
+  const groups={};
+  voters.forEach(p=>{if(p.vote!==null){if(!groups[p.vote])groups[p.vote]=[];groups[p.vote].push(p.name);}});
+  bd.innerHTML='';
+  Object.entries(groups).sort((a,b)=>{const na=isNaN(parseInt(a[0]))?999:parseInt(a[0]);const nb=isNaN(parseInt(b[0]))?999:parseInt(b[0]);return na-nb;}).forEach(([val,names])=>{
+    const g=document.createElement('div');g.className='vote-group';
+    g.innerHTML='<div class="vote-val">'+val+'</div><div class="vote-count">'+names.length+'×</div><div class="vote-names">'+names.join(', ')+'</div>';
+    bd.appendChild(g);
+  });
+  sd.innerHTML='';
+  if(numVotes.length>0){
+    const avg=(numVotes.reduce((a,b)=>a+b,0)/numVotes.length).toFixed(1);
+    const min=Math.min(...numVotes),max=Math.max(...numVotes);
+    const consensus=numVotes.every(v=>v===numVotes[0]);
+    sd.innerHTML='<div class="stat-item"><strong>'+avg+'</strong>Average</div><div class="stat-item"><strong>'+min+'</strong>Low</div><div class="stat-item"><strong>'+max+'</strong>High</div><div class="stat-item"><strong style="color:'+(consensus?'var(--sage)':'var(--terra)')+'">'+( consensus?'Yes':'No')+'</strong>Consensus</div>';
+  }
+}
+
+function triggerReveal(){
+  const f=document.createElement('div');
+  f.style.cssText='position:fixed;inset:0;background:rgba(196,98,58,.06);pointer-events:none;z-index:9998;animation:fadeFlash .7s forwards';
+  const s=document.createElement('style');s.textContent='@keyframes fadeFlash{0%{opacity:1}100%{opacity:0}}';
+  document.head.appendChild(s);document.body.appendChild(f);setTimeout(()=>f.remove(),800);
+}
+
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',2500);
+}
+
+window.addEventListener('load',()=>{
+  const hash=location.hash.slice(1).toUpperCase();
+  if(hash.length===6)document.getElementById('roomCodeInput').value=hash;
+  document.getElementById('nameInput').focus();
+});
+</script>
+</body>
+</html>
